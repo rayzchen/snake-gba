@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Snake GBA</title>
+</head>
+<body>
+    <div style="width: 640px; height: 480px; max-width: 100%;">
+        <div id="game"></div>
+    </div>
+    <script>
+        EJS_player = "#game";
+        EJS_core = "gba";
+        EJS_gameUrl = "snake.gba";
+        EJS_disableAutoLang = true;
+        EJS_gameName = "Snake";
+        EJS_startOnLoaded = true;
+
+        EJS_paths = {
+            "emulator.min.js": "https://cdn.emulatorjs.org/latest/data/emulator.min.js",
+            "emulator.min.css": "https://cdn.emulatorjs.org/latest/data/emulator.min.css",
+            "mgba-legacy-wasm.data": "https://cdn.emulatorjs.org/latest/data/cores/emulator.min.css",
+            "extract7z.js": "https://cdn.emulatorjs.org/latest/data/compression/extract7z.js",
+        };
+    </script>
+    <script src="https://cdn.emulatorjs.org/latest/data/loader.js"></script>
+</body>
+</html>
