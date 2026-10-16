@@ -1,0 +1,5 @@
+.vscode/
+*.elf
+*.o
+*.gba
+*.sav
