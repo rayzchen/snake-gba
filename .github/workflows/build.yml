@@ -8,7 +8,9 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: Build ROM
-        run: bash build.sh
+        run: |
+          export PATH=/opt/devkitpro/devkitARM/bin/:$PATH
+          bash build.sh
       - uses: actions/upload-artifact@v4
         with:
           name: ROM file
