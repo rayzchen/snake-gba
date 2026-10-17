@@ -1,0 +1,21 @@
+name: Build GBA
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install dkp-pacman
+        run: |
+          wget -U "dkp-apt" https://apt.devkitpro.org/install-devkitpro-pacman
+          chmod +x ./install-devkitpro-pacman
+          sudo ./install-devkitpro-pacman
+      - name: Install devkitPro GBA
+        run: dkp-pacman -S gba-dev
+      - name: Build ROM
+        run: bash build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ROM file
+          path: snake.gba
+          archive: false
