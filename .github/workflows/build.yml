@@ -34,6 +34,13 @@ jobs:
     steps:
       - uses: actions/download-artifact@v8
         name: rom
+      - uses: actions/upload-artifact@v7
+        with:
+          name: github-pages
+          path: |
+            index.html
+            snake.gba
+            main.c
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
