@@ -84,6 +84,12 @@ const unsigned short tiles[] = {
     0x2200, 0x0022, 0x2000, 0x0002, 0x0000, 0x0000, 0x0000, 0x0000,
 };
 
+void draw_snake(Snake *snake) {
+    for (Node *curr = snake->tail; curr != NULL; curr = curr->next) {
+        set_tile(curr->pos, 1);
+    }
+}
+
 // Other GBA
 
 static inline void wait_vsync() {
@@ -152,12 +158,8 @@ int main() {
     }
 
     Snake *snake = malloc(sizeof(Snake));
-    for (int i = 0; i < 10; i++) {
-        shift(snake, (Vector){i, 0});
-    }
-    for (Node *curr = snake->tail; curr != NULL; curr = curr->next) {
-        set_tile(curr->pos, 1);
-    }
+    shift(snake, (Vector){10, 7});
+    draw_snake(snake);
 
     unsigned int curr_key = KEY_RIGHT;
     unsigned int next_key = curr_key;
@@ -176,12 +178,12 @@ int main() {
             if (new_head.x == -1) new_head.x = 29;
             if (new_head.x == 30) new_head.x = 0;
             if (new_head.y == -1) new_head.y = 19;
-            if (new_head.y == 20) new_head.y = 20;
+            if (new_head.y == 20) new_head.y = 0;
 
             shift(snake, new_head);
-            set_tile(new_head, 1);
             Vector tail = unshift(snake);
             set_tile(tail, 0);
+            draw_snake(snake);
         }
 
         wait_vsync();
