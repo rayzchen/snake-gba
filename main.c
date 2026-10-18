@@ -25,32 +25,44 @@ typedef struct Node_s {
 typedef struct {
     Node *head;
     Node *tail;
+    int length;
 } Snake;
 
-void shift(Snake *queue, Vector pos) {
+void shift(Snake *snake, Vector pos) {
     Node *node = (Node*)malloc(sizeof(Node));
     node->pos = pos;
     node->next = NULL;
-    if (queue->head == NULL) {
-        queue->head = node;
-        queue->tail = queue->head;
+    if (snake->head == NULL) {
+        snake->head = node;
+        snake->tail = snake->head;
     } else {
-        queue->head->next = node;
-        queue->head = node;
+        snake->head->next = node;
+        snake->head = node;
     }
+    snake->length++;
 }
 
-Vector unshift(Snake *queue) {
-    Node *node = queue->tail;
+Vector unshift(Snake *snake) {
+    Node *node = snake->tail;
     if (node->next == NULL) {
-        queue->head = NULL;
-        queue->tail = NULL;
+        snake->head = NULL;
+        snake->tail = NULL;
     } else {
-        queue->tail = node->next;
+        snake->tail = node->next;
     }
+    snake->length--;
     Vector pos = node->pos;
     free(node);
     return pos;
+}
+
+bool collides_snake(Snake *snake, Vector pos) {
+    for (Node *curr = snake->tail; curr != NULL; curr = curr->next) {
+        if (equals(curr->pos, pos)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // Registers
@@ -76,17 +88,47 @@ const unsigned short tiles[] = {
     // Tile 0 (blank)
     0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
     0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-    // Tile 1 (snake)
-    0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111,
-    0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111,
-    // Tile 2 (apple)
+    // Tile 1 (apple)
     0x0000, 0x0000, 0x0000, 0x0000, 0x2000, 0x0002, 0x2200, 0x0022,
     0x2200, 0x0022, 0x2000, 0x0002, 0x0000, 0x0000, 0x0000, 0x0000,
+    // Tile 2 (snake)
+    0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111,
+    0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111,
 };
 
 void draw_snake(Snake *snake) {
     for (Node *curr = snake->tail; curr != NULL; curr = curr->next) {
-        set_tile(curr->pos, 1);
+        set_tile(curr->pos, 2);
+    }
+}
+
+void draw_apple(Vector apple) {
+    set_tile(apple, 1);
+}
+
+int rand_seed = 0;
+int counter = 0;
+void seed_random() {
+    rand_seed = counter * 228 + REG_VCOUNT;
+}
+
+int rand() {
+    if (!rand_seed) seed_random();
+    rand_seed = 1664525 * rand_seed + 1013904223;
+    return (rand_seed >> 16) & 0x7FFF;
+}
+
+int randint(int a, int b) {
+    return (rand() * (b - a) >> 15) + a;
+}
+
+Vector new_apple(Snake *snake) {
+    while (1) {
+        int index = randint(0, 300);
+        Vector apple = {index % 30, index / 30};
+        if (!collides_snake(snake, apple)) {
+            return apple;
+        }
     }
 }
 
@@ -97,6 +139,12 @@ static inline void wait_vsync() {
 
     while (REG_VCOUNT >= 160); // Wait for VDraw
     while (REG_VCOUNT < 160); // Wait for VBlank
+}
+
+static inline void sleep(int count) {
+    for (int i = 0; i < count; i++) {
+        wait_vsync();
+    }
 }
 
 unsigned int __key_curr = 0, __key_prev = 0;
@@ -157,15 +205,19 @@ int main() {
         MEM_CBB1[i] = tiles[i];
     }
 
+    Vector apple = {19, 12};
     Snake *snake = malloc(sizeof(Snake));
     shift(snake, (Vector){10, 7});
     draw_snake(snake);
+    draw_apple(apple);
 
     unsigned int curr_key = KEY_RIGHT;
     unsigned int next_key = curr_key;
     Vector direction = {1, 0};
     int move_counter = 10;
     while (1) {
+        counter++;
+
         poll_keys();
         process_keys(curr_key, &next_key);
 
@@ -180,14 +232,32 @@ int main() {
             if (new_head.y == -1) new_head.y = 19;
             if (new_head.y == 20) new_head.y = 0;
 
+            if (collides_snake(snake, new_head)) {
+                break;
+            }
+
             shift(snake, new_head);
-            Vector tail = unshift(snake);
-            set_tile(tail, 0);
+            if (equals(new_head, apple)) {
+                apple = new_apple(snake);
+                draw_apple(apple);
+            } else {
+                Vector tail = unshift(snake);
+                set_tile(tail, 0);
+            }
             draw_snake(snake);
         }
 
         wait_vsync();
     }
 
-    return 0;
+    sleep(30);
+
+    while (snake->length) {
+        Vector tail = unshift(snake);
+        set_tile(tail, 0);
+        sleep(5);
+    }
+
+    set_tile(apple, 0);
+    while (1);
 }
