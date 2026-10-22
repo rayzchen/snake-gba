@@ -19,6 +19,7 @@ bool equals(Vector a, Vector b) {
 
 typedef struct Node_s {
     Vector pos;
+    unsigned int direction;
     struct Node_s *next;
 } Node;
 
@@ -28,9 +29,10 @@ typedef struct {
     int length;
 } Snake;
 
-void shift(Snake *snake, Vector pos) {
+void shift(Snake *snake, Vector pos, unsigned int direction) {
     Node *node = (Node*)malloc(sizeof(Node));
     node->pos = pos;
+    node->direction = direction;
     node->next = NULL;
     if (snake->head == NULL) {
         snake->head = node;
@@ -74,64 +76,6 @@ bool collides_snake(Snake *snake, Vector pos) {
 #define MEM_SBB0 ((unsigned short*)0x06000000)
 #define MEM_CBB1 ((unsigned short*)0x06004000)
 
-// BG operations
-
-void set_tile(Vector pos, unsigned short value) {
-    MEM_SBB0[pos.y * 32 + pos.x] = value;
-}
-
-unsigned short get_tile(Vector pos) {
-    return MEM_SBB0[pos.y * 32 + pos.x];
-}
-
-const unsigned short tiles[] = {
-    // Tile 0 (blank)
-    0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-    0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-    // Tile 1 (apple)
-    0x0000, 0x0000, 0x0000, 0x0000, 0x2000, 0x0002, 0x2200, 0x0022,
-    0x2200, 0x0022, 0x2000, 0x0002, 0x0000, 0x0000, 0x0000, 0x0000,
-    // Tile 2 (snake)
-    0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111,
-    0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111, 0x1111,
-};
-
-void draw_snake(Snake *snake) {
-    for (Node *curr = snake->tail; curr != NULL; curr = curr->next) {
-        set_tile(curr->pos, 2);
-    }
-}
-
-void draw_apple(Vector apple) {
-    set_tile(apple, 1);
-}
-
-int rand_seed = 0;
-int counter = 0;
-void seed_random() {
-    rand_seed = counter * 228 + REG_VCOUNT;
-}
-
-int rand() {
-    if (!rand_seed) seed_random();
-    rand_seed = 1664525 * rand_seed + 1013904223;
-    return (rand_seed >> 16) & 0x7FFF;
-}
-
-int randint(int a, int b) {
-    return (rand() * (b - a) >> 15) + a;
-}
-
-Vector new_apple(Snake *snake) {
-    while (1) {
-        int index = randint(0, 300);
-        Vector apple = {index % 30, index / 30};
-        if (!collides_snake(snake, apple)) {
-            return apple;
-        }
-    }
-}
-
 // Other GBA
 
 #define REG_DISPSTAT *(volatile unsigned short*)0x04000004
@@ -141,7 +85,7 @@ Vector new_apple(Snake *snake) {
 #define REG_INTERRUPT *(volatile unsigned int*)0x03007FFC
 #define REG_IFBIOS *(volatile unsigned int*)0x03007FF8
 
-__attribute__((target("arm"))) void vsync_irq_handler() {
+__attribute__((section(".iwram"), target("arm"))) void vsync_irq_handler() {
     REG_IF = 1;
     REG_IFBIOS |= 1;
 }
@@ -201,6 +145,80 @@ static inline Vector map_key(unsigned int key) {
     }
 }
 
+static inline int key_index(unsigned int key) {
+    if (key == KEY_RIGHT) {
+        return 0;
+    } else if (key == KEY_DOWN) {
+        return 1;
+    } else if (key == KEY_LEFT) {
+        return 2;
+    } else if (key == KEY_UP) {
+        return 3;
+    } else {
+        return -1;
+    }
+}
+
+// BG operations
+
+void set_tile(Vector pos, unsigned short value) {
+    MEM_SBB0[pos.y * 32 + pos.x] = value;
+}
+
+unsigned short get_tile(Vector pos) {
+    return MEM_SBB0[pos.y * 32 + pos.x];
+}
+
+#include "tiles.h"
+
+int tile_pair_map[] = {
+    6, 10, 0, 15,
+    16, 7, 11, 0,
+    0, 17, 8, 12,
+    13, 0, 14, 9,
+};
+void draw_snake(Snake *snake) {
+    set_tile(snake->head->pos, 2 + key_index(snake->head->direction));
+    if (snake->head != snake->tail) {
+        set_tile(snake->tail->pos, 18 + key_index(snake->tail->next->direction));
+
+        for (Node *node = snake->tail->next; node != snake->head; node = node->next) {
+            int index = key_index(node->direction) * 4 + key_index(node->next->direction);
+            set_tile(node->pos, tile_pair_map[index]);
+        }
+    }
+}
+
+void draw_apple(Vector apple) {
+    set_tile(apple, 1);
+}
+
+int rand_seed = 0;
+int counter = 0;
+void seed_random() {
+    rand_seed = counter * 228 + REG_VCOUNT;
+}
+
+int rand() {
+    if (!rand_seed) seed_random();
+    rand_seed = 1664525 * rand_seed + 1013904223;
+    return (rand_seed >> 16) & 0x7FFF;
+}
+
+int randint(int a, int b) {
+    return (rand() * (b - a) >> 15) + a;
+}
+
+Vector new_apple(Snake *snake) {
+    while (1) {
+        int index = randint(0, 300);
+        Vector apple = {index % 30, index / 30};
+        if (!collides_snake(snake, apple)) {
+            return apple;
+        }
+    }
+}
+
 int main() {
     // Mode 0, BG 0
     REG_DISPCNT = 0x0100;
@@ -215,15 +233,16 @@ int main() {
     REG_IME = 1;
 
     // blank, white, red
-    PAL_BG1[1] = 0x7FFF;
-    PAL_BG1[2] = 0x001F;
-    for (int i = 0; i < sizeof(tiles) / sizeof(unsigned short); i++) {
+    for (int i = 0; i < palette_count; i++) {
+        PAL_BG1[i] = palette[i];
+    }
+    for (int i = 0; i < tile_count; i++) {
         MEM_CBB1[i] = tiles[i];
     }
 
     Vector apple = {19, 12};
     Snake *snake = malloc(sizeof(Snake));
-    shift(snake, (Vector){10, 7});
+    shift(snake, (Vector){10, 7}, KEY_RIGHT);
     draw_snake(snake);
     draw_apple(apple);
 
@@ -252,7 +271,7 @@ int main() {
                 break;
             }
 
-            shift(snake, new_head);
+            shift(snake, new_head, curr_key);
             if (equals(new_head, apple)) {
                 apple = new_apple(snake);
                 draw_apple(apple);
