@@ -134,11 +134,20 @@ Vector new_apple(Snake *snake) {
 
 // Other GBA
 
-static inline void wait_vsync() {
-    // asm volatile("swi\t0x05" ::: "r0", "r1", "r2", "r3");
+#define REG_DISPSTAT *(volatile unsigned short*)0x04000004
+#define REG_IE *(volatile unsigned short*)0x04000200
+#define REG_IF *(volatile unsigned short*)0x04000202
+#define REG_IME *(volatile unsigned short*)0x04000208
+#define REG_INTERRUPT *(volatile unsigned int*)0x03007FFC
+#define REG_IFBIOS *(volatile unsigned int*)0x03007FF8
 
-    while (REG_VCOUNT >= 160); // Wait for VDraw
-    while (REG_VCOUNT < 160); // Wait for VBlank
+__attribute__((target("arm"))) void vsync_irq_handler() {
+    REG_IF = 1;
+    REG_IFBIOS |= 1;
+}
+
+static inline void wait_vsync() {
+    asm volatile("swi\t0x05" ::: "r0", "r1", "r2", "r3");
 }
 
 static inline void sleep(int count) {
@@ -197,6 +206,13 @@ int main() {
     REG_DISPCNT = 0x0100;
     // CBB 1, SBB 0, 32x32
     REG_BG0CNT = 0x0004;
+
+    // Setup VBlank interrupt
+    REG_IME = 0;
+    REG_INTERRUPT = (unsigned int)vsync_irq_handler;
+    REG_DISPSTAT |= 0x08;
+    REG_IE |= 1;
+    REG_IME = 1;
 
     // blank, white, red
     PAL_BG1[1] = 0x7FFF;
