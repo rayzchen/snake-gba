@@ -193,6 +193,18 @@ void draw_apple(Vector apple) {
     set_tile(apple, 1);
 }
 
+int digit_tiles[] = {24, 25, 26, 27, 28, 29, 30, 31, 40, 41};
+void draw_digit(unsigned int x, unsigned int y, unsigned int digit) {
+    set_tile((Vector){x, y}, digit_tiles[digit]);
+    set_tile((Vector){x, y + 1}, digit_tiles[digit] + 8);
+}
+
+void draw_score(int score) {
+    draw_digit(23, 8, score / 100);
+    draw_digit(24, 8, score / 10 % 10);
+    draw_digit(25, 8, score % 10);
+}
+
 int rand_seed = 0;
 int counter = 0;
 void seed_random() {
@@ -211,8 +223,8 @@ int randint(int a, int b) {
 
 Vector new_apple(Snake *snake) {
     while (1) {
-        int index = randint(0, 300);
-        Vector apple = {index % 30, index / 30};
+        int index = randint(0, 18 * 18);
+        Vector apple = {index % 18 + 1, index / 18 + 1};
         if (!collides_snake(snake, apple)) {
             return apple;
         }
@@ -240,15 +252,30 @@ int main() {
         MEM_CBB1[i] = tiles[i];
     }
 
-    Vector apple = {19, 12};
+    // Draw border and text
+    for (int y = 0; y < 20; y++) {
+        for (int x = 0; x < 30; x++) {
+            if (!(x > 0 && x < 19 && y > 0 && y < 19)) {
+                set_tile((Vector){x, y}, 22);
+            }
+        }
+    }
+    for (int x = 22; x < 27; x++) {
+        set_tile((Vector){x, 4}, 20 + x);
+        set_tile((Vector){x, 5}, 28 + x);
+    }
+
+    Vector apple = {14, 14};
+    int score = 0;
     Snake *snake = malloc(sizeof(Snake));
-    shift(snake, (Vector){10, 7}, KEY_RIGHT);
+    shift(snake, (Vector){6, 6}, KEY_RIGHT);
     draw_snake(snake);
+    draw_score(score);
     draw_apple(apple);
 
     unsigned int curr_key = KEY_RIGHT;
     unsigned int next_key = curr_key;
-    Vector direction = {1, 0};
+    Vector direction = {0, 0};
     int move_counter = 10;
     while (1) {
         counter++;
@@ -262,12 +289,13 @@ int main() {
             direction = map_key(curr_key);
 
             Vector new_head = add(snake->head->pos, direction);
-            if (new_head.x == -1) new_head.x = 29;
-            if (new_head.x == 30) new_head.x = 0;
-            if (new_head.y == -1) new_head.y = 19;
-            if (new_head.y == 20) new_head.y = 0;
+            bool edge = false;
+            if (new_head.x == 0) edge = true;
+            if (new_head.x == 19) edge = true;
+            if (new_head.y == 0) edge = true;
+            if (new_head.y == 19) edge = true;
 
-            if (collides_snake(snake, new_head)) {
+            if (edge || collides_snake(snake, new_head)) {
                 break;
             }
 
@@ -275,11 +303,13 @@ int main() {
             if (equals(new_head, apple)) {
                 apple = new_apple(snake);
                 draw_apple(apple);
+                score++;
             } else {
                 Vector tail = unshift(snake);
                 set_tile(tail, 0);
             }
             draw_snake(snake);
+            draw_score(score);
         }
 
         wait_vsync();
