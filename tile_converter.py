@@ -14,7 +14,6 @@ gba_colors = {i: process_rgb(color) for color, i in colormap.items()}
 
 data = im.get_flattened_data()
 tilemap = []
-end = False
 for ty in range(im.size[1] // 8):
     for tx in range(im.size[0] // 8):
         tile = []
@@ -25,12 +24,9 @@ for ty in range(im.size[1] // 8):
                 row = hex(color)[2:].upper() + row
             tile.append("0x" + row[4:])
             tile.append("0x" + row[:4])
-        if tilemap and tile == tilemap[0]:
-            end = True
-            break
         tilemap.append(tile)
-    if end:
-        break
+while tilemap[-1] == tilemap[0]:
+    tilemap.pop()
 
 with open("tiles.c", "w+") as f:
     f.write("#include \"tiles.h\"\n\n")
