@@ -343,5 +343,14 @@ int main() {
     set_tile(apple, 0);
     sleep(30);
 
+    draw_letter(5, 8, 'Z' + 2);
+    draw_letter(6, 8, 'Z' + 3);
+    draw_letter(7, 8, 'Z' + 4);
+    draw_letter(8, 8, 'Z' + 5);
+    draw_letter(11, 8, 'Z' + 6);
+    draw_letter(12, 8, 'Z' + 7);
+    draw_letter(13, 8, 'Z' + 8);
+    draw_letter(14, 8, 'Z' + 9);
+
     while (1);
 }
