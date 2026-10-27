@@ -193,18 +193,23 @@ void draw_apple(Vector apple) {
     set_tile(apple, 1);
 }
 
-int digit_tiles[] = {24, 25, 26, 27, 28, 29, 30, 31, 40, 41};
-void draw_digit(unsigned int x, unsigned int y, unsigned int digit) {
-    set_tile((Vector){x, y}, digit_tiles[digit]);
-    set_tile((Vector){x, y + 1}, digit_tiles[digit] + 8);
-}
-
-void draw_letter(unsigned int x, unsigned int y, char letter) {
-    unsigned int index = letter - 'A' + 2;
-    unsigned int row = index / 8 * 2 + 5;
+void draw_letter(unsigned int x, unsigned int y, char letter, int offset) {
+    unsigned int index = letter - 'A' + (offset % 8);
+    unsigned int row = index / 8 * 2 + offset / 8;
     unsigned int column = index % 8;
     set_tile((Vector){x, y}, row * 8 + column);
     set_tile((Vector){x, y + 1}, row * 8 + column + 8);
+}
+
+void draw_digit(unsigned int x, unsigned int y, unsigned int digit) {
+    draw_letter(x, y, digit + 'A', 74);
+}
+void draw_letter_black(unsigned int x, unsigned int y, char letter) {
+    draw_letter(x, y, letter, 24);
+}
+
+void draw_letter_blue(unsigned int x, unsigned int y, char letter) {
+    draw_letter(x, y, letter, 92);
 }
 
 void draw_score(int score) {
@@ -220,7 +225,6 @@ void seed_random() {
 }
 
 int rand() {
-    if (!rand_seed) seed_random();
     rand_seed = 1664525 * rand_seed + 1013904223;
     return (rand_seed >> 16) & 0x7FFF;
 }
@@ -269,18 +273,17 @@ int main() {
         }
     }
 
-    draw_letter(22, 4, 'S');
-    draw_letter(23, 4, 'N');
-    draw_letter(24, 4, 'A');
-    draw_letter(25, 4, 'K');
-    draw_letter(26, 4, 'E');
+    draw_letter_blue(22, 4, 'S');
+    draw_letter_blue(23, 4, 'N');
+    draw_letter_blue(24, 4, 'A');
+    draw_letter_blue(25, 4, 'K');
+    draw_letter_blue(26, 4, 'E');
 
-    draw_letter(21, 8, 'S');
-    draw_letter(22, 8, 'C');
-    draw_letter(23, 8, 'O');
-    draw_letter(24, 8, 'R');
-    draw_letter(25, 8, 'E');
-    draw_letter(26, 8, 'Z' + 1);
+    draw_letter_blue(21, 8, 'S');
+    draw_letter_blue(22, 8, 'C');
+    draw_letter_blue(23, 8, 'O');
+    draw_letter_blue(24, 8, 'R');
+    draw_letter_blue(25, 8, 'E');
 
     Vector apple = {14, 14};
     int score = 0;
@@ -290,13 +293,29 @@ int main() {
     draw_score(score);
     draw_apple(apple);
 
-    unsigned int curr_key = KEY_RIGHT;
+    unsigned int curr_key;
+    unsigned int wait_keys[] = {KEY_RIGHT, KEY_LEFT, KEY_DOWN, KEY_UP};
+    bool waiting = true;
+    while (waiting) {
+        counter++;
+        poll_keys();
+
+        for (int i = 0; i < 4; i++) {
+            if (key_pressed(wait_keys[i])) {
+                curr_key = wait_keys[i];
+                waiting = false;
+                break;
+            }
+        }
+        wait_vsync();
+    }
+
+    seed_random();
+
     unsigned int next_key = curr_key;
     Vector direction = {0, 0};
     int move_counter = 10;
     while (1) {
-        counter++;
-
         poll_keys();
         process_keys(curr_key, &next_key);
 
@@ -343,14 +362,14 @@ int main() {
     set_tile(apple, 0);
     sleep(30);
 
-    draw_letter(5, 8, 'Z' + 2);
-    draw_letter(6, 8, 'Z' + 3);
-    draw_letter(7, 8, 'Z' + 4);
-    draw_letter(8, 8, 'Z' + 5);
-    draw_letter(11, 8, 'Z' + 6);
-    draw_letter(12, 8, 'Z' + 7);
-    draw_letter(13, 8, 'Z' + 8);
-    draw_letter(14, 8, 'Z' + 9);
+    draw_letter_black(5, 8, 'G');
+    draw_letter_black(6, 8, 'A');
+    draw_letter_black(7, 8, 'M');
+    draw_letter_black(8, 8, 'E');
+    draw_letter_black(11, 8, 'O');
+    draw_letter_black(12, 8, 'V');
+    draw_letter_black(13, 8, 'E');
+    draw_letter_black(14, 8, 'R');
 
     while (1);
 }
