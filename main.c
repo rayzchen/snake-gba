@@ -101,6 +101,7 @@ static inline void sleep(int count) {
 }
 
 unsigned int __key_curr = 0, __key_prev = 0;
+#define KEY_START 0x0008
 #define KEY_RIGHT 0x0010
 #define KEY_LEFT 0x0020
 #define KEY_UP 0x0040
@@ -205,11 +206,21 @@ void draw_digit(unsigned int x, unsigned int y, unsigned int digit) {
     draw_letter(x, y, digit + 'A', 74);
 }
 void draw_letter_black(unsigned int x, unsigned int y, char letter) {
-    draw_letter(x, y, letter, 24);
+    if (letter == 0) {
+        set_tile((Vector){x, y}, 0);
+        set_tile((Vector){x, y + 1}, 0);
+    } else {
+        draw_letter(x, y, letter, 24);
+    }
 }
 
 void draw_letter_blue(unsigned int x, unsigned int y, char letter) {
-    draw_letter(x, y, letter, 92);
+    if (letter == 0) {
+        set_tile((Vector){x, y}, 22);
+        set_tile((Vector){x, y + 1}, 22);
+    } else {
+        draw_letter(x, y, letter, 92);
+    }
 }
 
 void draw_score(int score) {
@@ -284,25 +295,26 @@ int main() {
     draw_letter_blue(23, 8, 'O');
     draw_letter_blue(24, 8, 'R');
     draw_letter_blue(25, 8, 'E');
+    draw_score(0);
 
-    Vector apple = {14, 14};
-    int score = 0;
-    Snake *snake = malloc(sizeof(Snake));
-    shift(snake, (Vector){6, 6}, KEY_RIGHT);
-    draw_snake(snake);
-    draw_score(score);
-    draw_apple(apple);
+    draw_letter_black(4, 8, 'P');
+    draw_letter_black(5, 8, 'R');
+    draw_letter_black(6, 8, 'E');
+    draw_letter_black(7, 8, 'S');
+    draw_letter_black(8, 8, 'S');
+    draw_letter_black(11, 8, 'S');
+    draw_letter_black(12, 8, 'T');
+    draw_letter_black(13, 8, 'A');
+    draw_letter_black(14, 8, 'R');
+    draw_letter_black(15, 8, 'T');
 
-    unsigned int curr_key;
-    unsigned int wait_keys[] = {KEY_RIGHT, KEY_LEFT, KEY_DOWN, KEY_UP};
     bool waiting = true;
     while (waiting) {
         counter++;
         poll_keys();
 
         for (int i = 0; i < 4; i++) {
-            if (key_pressed(wait_keys[i])) {
-                curr_key = wait_keys[i];
+            if (key_pressed(KEY_START)) {
                 waiting = false;
                 break;
             }
@@ -311,7 +323,19 @@ int main() {
     }
 
     seed_random();
+    for (int i = 4; i < 16; i++) {
+        draw_letter_black(i, 8, 0);
+    }
+    sleep(30);
 
+    Vector apple = {14, 14};
+    int score = 0;
+    Snake *snake = malloc(sizeof(Snake));
+    shift(snake, (Vector){6, 6}, KEY_RIGHT);
+    draw_snake(snake);
+    draw_apple(apple);
+
+    unsigned int curr_key = KEY_RIGHT;
     unsigned int next_key = curr_key;
     Vector direction = {0, 0};
     int move_counter = 10;
