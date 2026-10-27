@@ -172,10 +172,10 @@ unsigned short get_tile(Vector pos) {
 #include "tiles.h"
 
 int tile_pair_map[] = {
-    6, 10, 0, 15,
-    16, 7, 11, 0,
-    0, 17, 8, 12,
-    13, 0, 14, 9,
+    6, 10, 0, 14,
+    15, 7, 11, 0,
+    0, 16, 8, 12,
+    13, 0, 17, 9,
 };
 void draw_snake(Snake *snake) {
     set_tile(snake->head->pos, 2 + key_index(snake->head->direction));
