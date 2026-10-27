@@ -116,7 +116,7 @@ static inline unsigned int key_pressed(unsigned int key) {
     return (__key_curr & ~__key_prev) & key;
 }
 
-static inline void process_keys(unsigned int current, unsigned int *next) {
+static inline void process_input(unsigned int current, unsigned int *next) {
     if (current == KEY_LEFT || current == KEY_RIGHT) {
         if (key_pressed(KEY_UP)) {
             *next = KEY_UP;
@@ -308,92 +308,99 @@ int main() {
     draw_letter_black(14, 8, 'R');
     draw_letter_black(15, 8, 'T');
 
-    bool waiting = true;
-    while (waiting) {
-        counter++;
-        poll_keys();
-
-        for (int i = 0; i < 4; i++) {
-            if (key_pressed(KEY_START)) {
-                waiting = false;
-                break;
-            }
-        }
-        wait_vsync();
-    }
-
-    seed_random();
-    for (int i = 4; i < 16; i++) {
-        draw_letter_black(i, 8, 0);
-    }
-    sleep(30);
-
-    Vector apple = {14, 14};
-    int score = 0;
-    Snake *snake = malloc(sizeof(Snake));
-    shift(snake, (Vector){6, 6}, KEY_RIGHT);
-    draw_snake(snake);
-    draw_apple(apple);
-
-    unsigned int curr_key = KEY_RIGHT;
-    unsigned int next_key = curr_key;
-    Vector direction = {0, 0};
-    int move_counter = 10;
     while (1) {
-        poll_keys();
-        process_keys(curr_key, &next_key);
+        // Wait for start
+        bool waiting = true;
+        while (waiting) {
+            counter++;
+            poll_keys();
 
-        if (--move_counter == 0) {
-            move_counter = 10;
-            curr_key = next_key;
-            direction = map_key(curr_key);
-
-            Vector new_head = add(snake->head->pos, direction);
-            bool edge = false;
-            if (new_head.x == 0) edge = true;
-            if (new_head.x == 19) edge = true;
-            if (new_head.y == 0) edge = true;
-            if (new_head.y == 19) edge = true;
-
-            if (edge || collides_snake(snake, new_head)) {
-                break;
+            for (int i = 0; i < 4; i++) {
+                if (key_pressed(KEY_START)) {
+                    waiting = false;
+                    break;
+                }
             }
-
-            shift(snake, new_head, curr_key);
-            if (equals(new_head, apple)) {
-                apple = new_apple(snake);
-                draw_apple(apple);
-                score++;
-            } else {
-                Vector tail = unshift(snake);
-                set_tile(tail, 0);
-            }
-            draw_snake(snake);
-            draw_score(score);
+            wait_vsync();
         }
 
-        wait_vsync();
+        // Clear screen
+        seed_random();
+        for (int i = 4; i < 16; i++) {
+            draw_letter_black(i, 8, 0);
+        }
+        sleep(30);
+
+        // Set up snake and apple
+        Vector apple = {14, 14};
+        int score = 0;
+        Snake *snake = malloc(sizeof(Snake));
+        shift(snake, (Vector){6, 6}, KEY_RIGHT);
+        draw_snake(snake);
+        draw_apple(apple);
+
+        // Run game
+        unsigned int curr_key = KEY_RIGHT;
+        unsigned int next_key = curr_key;
+        Vector direction = {0, 0};
+        int move_counter = 10;
+        while (1) {
+            poll_keys();
+            process_input(curr_key, &next_key);
+
+            if (--move_counter == 0) {
+                move_counter = 10;
+                curr_key = next_key;
+                direction = map_key(curr_key);
+
+                Vector new_head = add(snake->head->pos, direction);
+                bool edge = false;
+                if (new_head.x == 0) edge = true;
+                if (new_head.x == 19) edge = true;
+                if (new_head.y == 0) edge = true;
+                if (new_head.y == 19) edge = true;
+
+                if (edge || collides_snake(snake, new_head)) {
+                    break;
+                }
+
+                shift(snake, new_head, curr_key);
+                if (equals(new_head, apple)) {
+                    apple = new_apple(snake);
+                    draw_apple(apple);
+                    score++;
+                } else {
+                    Vector tail = unshift(snake);
+                    set_tile(tail, 0);
+                }
+                draw_snake(snake);
+                draw_score(score);
+            }
+
+            wait_vsync();
+        }
+
+        sleep(30);
+
+        // Clear snake and apple
+        while (snake->length) {
+            Vector tail = unshift(snake);
+            set_tile(tail, 0);
+            sleep(5);
+        }
+        set_tile(apple, 0);
+        sleep(30);
+        free(snake);
+
+        // Draw game over
+        draw_letter_black(5, 8, 'G');
+        draw_letter_black(6, 8, 'A');
+        draw_letter_black(7, 8, 'M');
+        draw_letter_black(8, 8, 'E');
+        draw_letter_black(11, 8, 'O');
+        draw_letter_black(12, 8, 'V');
+        draw_letter_black(13, 8, 'E');
+        draw_letter_black(14, 8, 'R');
+
     }
-
-    sleep(30);
-
-    while (snake->length) {
-        Vector tail = unshift(snake);
-        set_tile(tail, 0);
-        sleep(5);
-    }
-
-    set_tile(apple, 0);
-    sleep(30);
-
-    draw_letter_black(5, 8, 'G');
-    draw_letter_black(6, 8, 'A');
-    draw_letter_black(7, 8, 'M');
-    draw_letter_black(8, 8, 'E');
-    draw_letter_black(11, 8, 'O');
-    draw_letter_black(12, 8, 'V');
-    draw_letter_black(13, 8, 'E');
-    draw_letter_black(14, 8, 'R');
-
-    while (1);
 }
