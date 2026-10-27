@@ -199,10 +199,18 @@ void draw_digit(unsigned int x, unsigned int y, unsigned int digit) {
     set_tile((Vector){x, y + 1}, digit_tiles[digit] + 8);
 }
 
+void draw_letter(unsigned int x, unsigned int y, char letter) {
+    unsigned int index = letter - 'A' + 2;
+    unsigned int row = index / 8 * 2 + 5;
+    unsigned int column = index % 8;
+    set_tile((Vector){x, y}, row * 8 + column);
+    set_tile((Vector){x, y + 1}, row * 8 + column + 8);
+}
+
 void draw_score(int score) {
-    draw_digit(23, 8, score / 100);
-    draw_digit(24, 8, score / 10 % 10);
-    draw_digit(25, 8, score % 10);
+    draw_digit(25, 10, score / 100);
+    draw_digit(26, 10, score / 10 % 10);
+    draw_digit(27, 10, score % 10);
 }
 
 int rand_seed = 0;
@@ -260,10 +268,19 @@ int main() {
             }
         }
     }
-    for (int x = 22; x < 27; x++) {
-        set_tile((Vector){x, 4}, 20 + x);
-        set_tile((Vector){x, 5}, 28 + x);
-    }
+
+    draw_letter(22, 4, 'S');
+    draw_letter(23, 4, 'N');
+    draw_letter(24, 4, 'A');
+    draw_letter(25, 4, 'K');
+    draw_letter(26, 4, 'E');
+
+    draw_letter(21, 8, 'S');
+    draw_letter(22, 8, 'C');
+    draw_letter(23, 8, 'O');
+    draw_letter(24, 8, 'R');
+    draw_letter(25, 8, 'E');
+    draw_letter(26, 8, 'Z' + 1);
 
     Vector apple = {14, 14};
     int score = 0;
@@ -324,5 +341,7 @@ int main() {
     }
 
     set_tile(apple, 0);
+    sleep(30);
+
     while (1);
 }
